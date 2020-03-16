@@ -1,0 +1,10 @@
+# Define Drupal VM config directory.
+ENV['DRUPALVM_CONFIG_DIR'] = ""
+
+# Define Drupal VM project root.
+ENV['DRUPALVM_PROJECT_ROOT'] = "#{__dir__}"
+
+# Define Drupal VM directory root.
+ENV['DRUPALVM_DIR'] = "vendor/geerlingguy/drupal-vm"
+
+load "#{__dir__}/#{ENV['DRUPALVM_DIR']}/Vagrantfile"

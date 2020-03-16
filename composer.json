@@ -1,0 +1,23 @@
+{
+    "name": "pr0ject-x/px-drupalvm",
+    "description": "The project-X DrupalVM environment type plugin.",
+    "type": "px-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Travis Tomka",
+            "email": "underoathosx@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+        "pr0ject-x/px": "^1.0.1",
+        "geerlingguy/drupal-vm": "^5.0",
+        "joestewart/robo-vagrant": "^1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Pr0jectX\\PxDrupalVM\\": "./src"
+        }
+    }
+}
