@@ -17,7 +17,7 @@ use Robo\Contract\VerbosityThresholdInterface;
 /**
  * Define the DrupalVM database commands.
  */
-class DatabaseCommandCommands extends PluginCommandTaskBase implements DatabaseCommandInterface
+class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandInterface
 {
     use vagrantTasks;
 
