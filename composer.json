@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": ">=7.2",
-        "pr0ject-x/px": "^1.0.0",
+        "pr0ject-x/px": "^1.0.3",
         "geerlingguy/drupal-vm": "^5.0",
         "joestewart/robo-vagrant": "^1.1"
     },

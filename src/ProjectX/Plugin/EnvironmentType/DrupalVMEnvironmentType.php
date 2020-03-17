@@ -9,7 +9,8 @@ use Pr0jectX\Px\ConfigTreeBuilder\ConfigTreeBuilder;
 use Pr0jectX\Px\ProjectX\Plugin\EnvironmentType\EnvironmentTypeBase;
 use Pr0jectX\Px\PxApp;
 use Pr0jectX\PxDrupalVM\DrupalVM;
-use Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\Commands\DatabaseCommandCommands;
+use Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\Commands\DatabaseCommands;
+use Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\Commands\DrupalVMCommands;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Yaml\Yaml;
@@ -53,7 +54,8 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     public function registeredCommands() : array
     {
         return array_merge([
-            DatabaseCommandCommands::class
+            DatabaseCommands::class,
+            DrupalVMCommands::class,
         ], parent::registeredCommands());
     }
 
@@ -79,21 +81,35 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function init()
+    public function init(array $opts = [])
     {
         $this
             ->printBanner()
             ->installDrupalVM()
             ->writeDrupalVMConfig()
             ->writeDrupalVMVagrantFile();
+        
+        if ($this->confirm('Provision the environment now?', true)) {
+            /** @var \Symfony\Component\Console\Application $application */
+            $application = PxApp::service('application');
+
+            if ($command = $application->find('env:provision')) {
+                $this->taskSymfonyCommand($command)->run();
+            }
+        }
     }
-    
+
     /**
      * {@inheritDoc}
      */
-    public function start() : DrupalVMEnvironmentType
+    public function start(array $opts = []) : DrupalVMEnvironmentType
     {
-        $this->taskVagrantUp()->run();
+        $task = $this->taskVagrantUp();
+
+        if (isset($opts['provision']) && $opts['provision']) {
+            $task->provision();
+        }
+        $task->run();
 
         return $this;
     }
@@ -101,7 +117,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function stop() : DrupalVMEnvironmentType
+    public function stop(array $opts = []) : DrupalVMEnvironmentType
     {
         $this->taskVagrantHalt()->run();
 
@@ -111,9 +127,14 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function restart() : DrupalVMEnvironmentType
+    public function restart(array $opts = []) : DrupalVMEnvironmentType
     {
-        $this->taskVagrantReload()->run();
+        $task = $this->taskVagrantReload();
+
+        if (isset($opts['provision']) && $opts['provision']) {
+            $task->provision();
+        }
+        $task->run();
 
         return $this;
     }
@@ -121,7 +142,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function destroy() : DrupalVMEnvironmentType
+    public function destroy(array $opts = []) : DrupalVMEnvironmentType
     {
         $this->taskVagrantDestroy()->run();
 
@@ -131,7 +152,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function info() : DrupalVMEnvironmentType
+    public function info(array $opts = []) : DrupalVMEnvironmentType
     {
         $this->taskVagrantStatus()->run();
 
@@ -141,7 +162,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function ssh() : DrupalVMEnvironmentType
+    public function ssh(array $opts = []) : DrupalVMEnvironmentType
     {
         $this->taskVagrantSsh()->run();
 
@@ -151,10 +172,11 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function launch(array $options = []) : DrupalVMEnvironmentType
+    public function launch(array $opts = []) : DrupalVMEnvironmentType
     {
+        $schema = $opts['schema'] ?? 'http';
+
         if ($hostname = DrupalVM::getDrupalVMConfigs()['vagrant_hostname']) {
-            $schema = $options['schema'] ?? 'http';
             $this->taskOpenBrowser("{$schema}://{$hostname}")->run();
         }
 
