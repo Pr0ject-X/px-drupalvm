@@ -219,7 +219,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
 
             $remoteCommand = !$gzip
                 ? "{$mysqlCommand} < {$target_filepath}"
-                : "gunzip -f {$target_filepath} | {$mysqlCommand}";
+                : "zcat {$target_filepath} | {$mysqlCommand}";
 
             $response = $this->taskVagrantSsh()
                 ->command($remoteCommand)
