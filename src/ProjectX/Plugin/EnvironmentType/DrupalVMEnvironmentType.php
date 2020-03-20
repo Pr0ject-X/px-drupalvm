@@ -356,7 +356,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                 )))
             ->end();
 
-        $installedExtraDefault = $config['installed_extras']
+        $installedExtraDefault = isset($config['installed_extras'])
             ? implode(', ', $config['installed_extras'])
             : static::DEFAULT_INSTALLABLE_PACKAGES;
 
