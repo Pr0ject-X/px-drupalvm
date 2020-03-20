@@ -93,8 +93,10 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
             /** @var \Symfony\Component\Console\Application $application */
             $application = PxApp::service('application');
 
-            if ($command = $application->find('env:provision')) {
-                $this->taskSymfonyCommand($command)->run();
+            if ($command = $application->find('env:up')) {
+                $this->taskSymfonyCommand($command)
+                    ->opt('provision', true)
+                    ->run();
             }
         }
     }
