@@ -3,6 +3,8 @@
     "description": "The project-X DrupalVM environment type plugin.",
     "type": "px-plugin",
     "license": "MIT",
+    "prefer-stable": true,
+    "minimum-stability": "dev",
     "authors": [
         {
             "name": "Travis Tomka",
@@ -11,7 +13,7 @@
     ],
     "require": {
         "php": ">=7.2",
-        "pr0ject-x/px": "^1.0.3",
+        "pr0ject-x/px": "^1.0.7",
         "geerlingguy/drupal-vm": "^5.0",
         "joestewart/robo-vagrant": "^1.1"
     },

@@ -6,7 +6,9 @@ namespace Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType;
 
 use JoeStewart\Robo\Task\Vagrant\loadTasks as vagrantTasks;
 use Pr0jectX\Px\ConfigTreeBuilder\ConfigTreeBuilder;
+use Pr0jectX\Px\ProjectX\Plugin\EnvironmentType\EnvironmentDatabase;
 use Pr0jectX\Px\ProjectX\Plugin\EnvironmentType\EnvironmentTypeBase;
+use Pr0jectX\Px\ProjectX\Plugin\EnvironmentType\EnvironmentTypeInterface;
 use Pr0jectX\Px\PxApp;
 use Pr0jectX\PxDrupalVM\DrupalVM;
 use Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\Commands\DatabaseCommands;
@@ -25,6 +27,8 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     const DEFAULT_PHP_VERSION = '7.2';
 
     const DEFAULT_DRUPAL_ROOT = 'web';
+
+    const DRUPALVM_PORT = 3306;
 
     const DRUPALVM_ROOT = '/var/www/drupal';
 
@@ -62,19 +66,38 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function envAppRoot() : string
-    {
-        return DrupalVM::getDrupalVMConfigs()['drupal_core_path'] ?? "/var/www/drupal";
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function envPackages() : array
     {
         return [
             'drush',
             'composer',
+        ];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function envAppRoot() : string
+    {
+        return DrupalVM::getDrupalVMConfigs()['drupal_core_path']
+            ?? static::DRUPALVM_ROOT;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function envDatabases(): array
+    {
+        $dbConfigs = DrupalVM::getDatabaseConfigs();
+
+        return [
+            EnvironmentTypeInterface::ENVIRONMENT_DB_PRIMARY => (new EnvironmentDatabase())
+                ->setPort(static::DRUPALVM_PORT)
+                ->setType($dbConfigs['drupal_db_backend'])
+                ->setHost($dbConfigs['drupal_db_host'])
+                ->setUsername($dbConfigs['drupal_db_user'])
+                ->setPassword($dbConfigs['drupal_db_password'])
+                ->setDatabase($dbConfigs['drupal_db_name'])
         ];
     }
 
@@ -88,14 +111,16 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
             ->installDrupalVM()
             ->writeDrupalVMConfig()
             ->writeDrupalVMVagrantFile();
-        
+
         if ($this->confirm('Provision the environment now?', true)) {
             /** @var \Symfony\Component\Console\Application $application */
             $application = PxApp::service('application');
 
-            if ($command = $application->find('env:up')) {
+            /** @var \Consolidation\AnnotatedCommand\AnnotatedCommand $command */
+            if ($command = $application->find('env:start')) {
+                $command->optionsHook();
                 $this->taskSymfonyCommand($command)
-                    ->opt('provision', true)
+                    ->opt('provision')
                     ->run();
             }
         }
