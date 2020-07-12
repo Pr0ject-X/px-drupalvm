@@ -66,6 +66,15 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
+    public function execBuilderOptions(): array {
+        return [
+            'quote' => "'",
+        ];
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function envPackages(): array
     {
         return [
