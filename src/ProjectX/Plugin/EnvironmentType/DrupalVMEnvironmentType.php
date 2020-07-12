@@ -39,7 +39,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public static function pluginId() : string
+    public static function pluginId(): string
     {
         return 'drupalvm';
     }
@@ -47,7 +47,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public static function pluginLabel() : string
+    public static function pluginLabel(): string
     {
         return 'DrupalVM';
     }
@@ -55,7 +55,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function registeredCommands() : array
+    public function registeredCommands(): array
     {
         return array_merge([
             DatabaseCommands::class,
@@ -66,7 +66,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function envPackages() : array
+    public function envPackages(): array
     {
         return [
             'drush',
@@ -77,7 +77,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function envAppRoot() : string
+    public function envAppRoot(): string
     {
         return DrupalVM::getDrupalVMConfigs()['drupal_core_path']
             ?? static::DRUPALVM_ROOT;
@@ -129,7 +129,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function start(array $opts = []) : DrupalVMEnvironmentType
+    public function start(array $opts = []): DrupalVMEnvironmentType
     {
         $task = $this->taskVagrantUp();
 
@@ -144,7 +144,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function stop(array $opts = []) : DrupalVMEnvironmentType
+    public function stop(array $opts = []): DrupalVMEnvironmentType
     {
         $this->taskVagrantHalt()->run();
 
@@ -154,7 +154,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function restart(array $opts = []) : DrupalVMEnvironmentType
+    public function restart(array $opts = []): DrupalVMEnvironmentType
     {
         $task = $this->taskVagrantReload();
 
@@ -169,7 +169,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function destroy(array $opts = []) : DrupalVMEnvironmentType
+    public function destroy(array $opts = []): DrupalVMEnvironmentType
     {
         $this->taskVagrantDestroy()->run();
 
@@ -179,7 +179,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function info(array $opts = []) : DrupalVMEnvironmentType
+    public function info(array $opts = []): DrupalVMEnvironmentType
     {
         $this->taskVagrantStatus()->run();
 
@@ -189,7 +189,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function ssh(array $opts = []) : DrupalVMEnvironmentType
+    public function ssh(array $opts = []): DrupalVMEnvironmentType
     {
         $this->taskVagrantSsh()->run();
 
@@ -199,7 +199,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function launch(array $opts = []) : DrupalVMEnvironmentType
+    public function launch(array $opts = []): DrupalVMEnvironmentType
     {
         $schema = $opts['schema'] ?? 'http';
 
@@ -213,7 +213,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function exec(string $cmd) : DrupalVMEnvironmentType
+    public function exec(string $cmd): DrupalVMEnvironmentType
     {
         $this->taskVagrantSsh()->command($cmd)->run();
 
@@ -225,7 +225,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      *
      * @return \Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\DrupalVMEnvironmentType
      */
-    protected function installDrupalVM() : DrupalVMEnvironmentType
+    protected function installDrupalVM(): DrupalVMEnvironmentType
     {
         if (!PxApp::composerHasPackage('geerlingguy/drupal-vm')) {
             $this->taskComposerRequire()
@@ -243,7 +243,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      *
      * @return \Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\DrupalVMEnvironmentType
      */
-    protected function writeDrupalVMVagrantFile() : DrupalVMEnvironmentType
+    protected function writeDrupalVMVagrantFile(): DrupalVMEnvironmentType
     {
         $rootPath = PxApp::projectRootPath();
         $vagrantFile = "{$rootPath}/VagrantFile";
@@ -277,7 +277,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      *
      * @return \Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\DrupalVMEnvironmentType
      */
-    protected function printBanner() : DrupalVMEnvironmentType
+    protected function printBanner(): DrupalVMEnvironmentType
     {
         print file_get_contents(
             DrupalVM::rootPath() . '/banner.txt'
@@ -293,7 +293,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      *
      * @throws \Exception
      */
-    protected function writeDrupalVMConfig() : DrupalVMEnvironmentType
+    protected function writeDrupalVMConfig(): DrupalVMEnvironmentType
     {
         if ($drupalVmConfig = $this->drupalVMConfiguration()->build()) {
             $writeConfig = true;
@@ -332,7 +332,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      * @return array
      *   An array of installable packages.
      */
-    protected function drupalVMInstallablePackages() : array
+    protected function drupalVMInstallablePackages(): array
     {
         return [
             'adminer',
@@ -365,7 +365,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      *
      * @throws \Exception
      */
-    protected function drupalVMConfiguration() : ConfigTreeBuilder
+    protected function drupalVMConfiguration(): ConfigTreeBuilder
     {
         $config = DrupalVM::getDrupalVMConfigs();
 
@@ -492,7 +492,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      * @return string
      *   The YAML structured contents.
      */
-    protected function arrayToYaml(array $contents) : string
+    protected function arrayToYaml(array $contents): string
     {
         return Yaml::dump($contents, 10, 4);
     }
