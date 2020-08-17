@@ -17,6 +17,10 @@
         "geerlingguy/drupal-vm": "^5.0|^6.0",
         "joestewart/robo-vagrant": "^1.1"
     },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.5",
+        "phpmd/phpmd": "^2.8"
+    },
     "autoload": {
         "psr-4": {
             "Pr0jectX\\PxDrupalVM\\": "./src"
