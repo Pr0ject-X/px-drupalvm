@@ -1,6 +1,6 @@
 <?php
 
-declare(strict_types = 1);
+declare(strict_types=1);
 
 namespace Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType;
 
@@ -64,7 +64,8 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function execBuilderOptions(): array {
+    public function execBuilderOptions(): array
+    {
         return [
             'quote' => "'",
         ];
@@ -386,11 +387,15 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
         $configTreeBuilder
             ->createNode('php_version')
             ->setValue(
-                (new ChoiceQuestion($this->formatQuestionDefault(
-                    'Select PHP Version', $config['php_version'] ?? $phpDefaultVersion),
+                (new ChoiceQuestion(
+                    $this->formatQuestionDefault(
+                        'Select PHP Version',
+                        $config['php_version'] ?? $phpDefaultVersion
+                    ),
                     $phpVersions,
                     $config['php_version'] ?? $phpDefaultVersion
-                )))
+                ))
+            )
             ->end();
 
         $installedExtraDefault = static::DEFAULT_INSTALLABLE_PACKAGES;
@@ -398,8 +403,11 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
         $configTreeBuilder
             ->createNode('vagrant_hostname')
                 ->setValue(
-                    (new Question($this->formatQuestionDefault(
-                        'Input VM hostname', $config['vagrant_hostname'] ?? null),
+                    (new Question(
+                        $this->formatQuestionDefault(
+                            'Input VM hostname',
+                            $config['vagrant_hostname'] ?? null
+                        ),
                         $config['vagrant_hostname'] ?? null
                     ))
                         ->setValidator(function ($value) {
@@ -419,11 +427,14 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                 )
             ->end()
             ->createNode('vagrant_machine_name')
-                ->setValue((new Question($this->formatQuestionDefault(
-                    'Input VM machine name', $config['vagrant_machine_name'] ?? null),
+                ->setValue((new Question(
+                    $this->formatQuestionDefault(
+                        'Input VM machine name',
+                        $config['vagrant_machine_name'] ?? null
+                    ),
                     $config['vagrant_machine_name'] ?? null
                 ))
-                ->setValidator(function($value) {
+                ->setValidator(function ($value) {
                     if (!isset($value)) {
                         throw new \RuntimeException(
                             'The VM machine name is required!'
@@ -446,7 +457,8 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                     $this->formatQuestionDefault('Select installed extras', $installedExtraDefault),
                     $this->drupalVMInstallablePackages(),
                     $installedExtraDefault
-                ))->setMultiselect(true))
+                ))->setMultiselect(true)
+            )
             ->end();
 
         $drupalCorePathDefault = isset($config['drupal_core_path'])
@@ -456,9 +468,9 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
         $configTreeBuilder
             ->createNode('drupal_core_path')
                 ->setValue((new Question($this->formatQuestionDefault(
-                    'Input the Drupal root directory', $drupalCorePathDefault
-                ), $drupalCorePathDefault
-                ))->setNormalizer(function ($drupalRoot) {
+                    'Input the Drupal root directory',
+                    $drupalCorePathDefault
+                ), $drupalCorePathDefault))->setNormalizer(function ($drupalRoot) {
                     $drupalVMRoot = static::DRUPALVM_ROOT;
                     return "{$drupalVMRoot}/{$drupalRoot}";
                 }))
@@ -479,8 +491,10 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
         $configTreeBuilder
             ->createNode('php_xdebug_default_enable')
                 ->setCondition(function (array $build) {
-                    if (isset($build['installed_extras'])
-                        && in_array('xdebug', $build['installed_extras'])) {
+                    if (
+                        isset($build['installed_extras'])
+                        && in_array('xdebug', $build['installed_extras'])
+                    ) {
                         return true;
                     }
                     return false;

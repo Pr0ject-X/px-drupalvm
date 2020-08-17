@@ -18,7 +18,7 @@ class DrupalVM
      * @return string
      *   The DrupalVM root path.
      */
-    public static function rootPath() : string
+    public static function rootPath(): string
     {
         return dirname(__DIR__);
     }
@@ -29,7 +29,7 @@ class DrupalVM
      * @return array
      *   An array of DrupalVM templates.
      */
-    public static function templateDirectories() : array
+    public static function templateDirectories(): array
     {
         return [
             static::rootPath() . '/templates'
@@ -42,7 +42,7 @@ class DrupalVM
      * @return array
      *   An array of DrupalVM vagrant configurations.
      */
-    public static function getVagrantConfigs() : array
+    public static function getVagrantConfigs(): array
     {
         $drupalVmConfigs = DrupalVM::getDrupalVMConfigs();
 
@@ -59,12 +59,13 @@ class DrupalVM
      * @return array
      *   An array of DrupalVM database configurations.
      */
-    public static function getDatabaseConfigs() : array
+    public static function getDatabaseConfigs(): array
     {
         $drupalVmConfigs = DrupalVM::getDrupalVMConfigs();
 
         $databaseConfigs = array_intersect_key(
-            $drupalVmConfigs, array_flip([
+            $drupalVmConfigs,
+            array_flip([
                 'drupal_db_host',
                 'drupal_db_name',
                 'drupal_db_user',
@@ -73,8 +74,10 @@ class DrupalVM
             ])
         );
 
-        if (isset($databaseConfigs['drupal_db_host'])
-            && $databaseConfigs['drupal_db_host'] === 'localhost') {
+        if (
+            isset($databaseConfigs['drupal_db_host'])
+            && $databaseConfigs['drupal_db_host'] === 'localhost'
+        ) {
             $databaseConfigs['drupal_db_host'] = '127.0.0.1';
         }
 
@@ -90,7 +93,7 @@ class DrupalVM
      * @return string
      *   The remote vagrant SSH path.
      */
-    public static function getVagrantSshPath(string $path) : string
+    public static function getVagrantSshPath(string $path): string
     {
         $vagrantConfig = static::getVagrantConfigs();
 
@@ -145,7 +148,7 @@ class DrupalVM
      * @return array
      *   An array of the DrupalVM configurations.
      */
-    public static function getDrupalVMConfigs() : array
+    public static function getDrupalVMConfigs(): array
     {
         $drupalVMConfigs = [];
         $projectRoot = PxApp::projectRootPath();
@@ -163,7 +166,8 @@ class DrupalVM
             }
 
             $drupalVMConfigs = array_replace_recursive(
-                $drupalVMConfigs, $parsedConfigs
+                $drupalVMConfigs,
+                $parsedConfigs
             );
         }
 
@@ -176,7 +180,7 @@ class DrupalVM
      * @return array
      *   An array of all Drupal VM configurations.
      */
-    protected static function drupalVMConfigs() : array
+    protected static function drupalVMConfigs(): array
     {
         return  [
             'vendor/geerlingguy/drupal-vm/default.config.yml',

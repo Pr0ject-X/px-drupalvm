@@ -31,9 +31,9 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
     public function dbLaunch()
     {
         if (strtolower(php_uname('s')) !== 'darwin') {
-          throw new \RuntimeException(
-              'The Sequel Pro application is only available on Mac.'
-          );
+            throw new \RuntimeException(
+                'The Sequel Pro application is only available on Mac.'
+            );
         }
 
         if (file_exists(static::SEQUEL_PRO_APP)) {
@@ -84,7 +84,8 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
 
         if ($remotePath = $this->scpFileToGuest($targetPath, $source_file)) {
             $this->importRemoteDatabase(
-                $remotePath, $this->isFileGzipped($source_file)
+                $remotePath,
+                $this->isFileGzipped($source_file)
             );
         }
     }
@@ -112,7 +113,8 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
                 $targetPath = "{$export_dir}/{$exportFilename}";
 
                 $this->scpFileToHost(
-                    $targetPath, $remotePath
+                    $targetPath,
+                    $remotePath
                 );
             }
         }
@@ -135,7 +137,8 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
 
         if (file_exists($source_path)) {
             $continue = (bool) $this->confirm(
-                sprintf('The %s file already exist, continue?', $target_path), true
+                sprintf('The %s file already exist, continue?', $target_path),
+                true
             );
         }
 
@@ -205,7 +208,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
      * @return bool
      *   Return true if the import was successful; otherwise false.
      */
-    protected function importRemoteDatabase(string $target_filepath, bool $gzip = false) : bool
+    protected function importRemoteDatabase(string $target_filepath, bool $gzip = false): bool
     {
         if ($this->remoteFileExist($target_filepath)) {
             $dbConfigs = DrupalVM::getDatabaseConfigs();
@@ -307,7 +310,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
      *
      * @return bool
      */
-    protected function isFileGzipped(string $filepath) : bool
+    protected function isFileGzipped(string $filepath): bool
     {
         if (!file_exists($filepath)) {
             throw new \InvalidArgumentException(
@@ -317,7 +320,8 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
         $content_type = mime_content_type($filepath);
 
         $mime_type = substr(
-            $content_type, strpos($content_type, '/') + 1
+            $content_type,
+            strpos($content_type, '/') + 1
         );
 
         return $mime_type == 'x-gzip' || $mime_type == 'gzip';
@@ -329,7 +333,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
      * @return string
      *   The temporary directory.
      */
-    protected function getTempDirectory() : string
+    protected function getTempDirectory(): string
     {
         return static::TEMP_DIRECTORY;
     }
@@ -340,7 +344,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
      * @return string
      *   The sequel pro configuration template contents.
      */
-    protected function sequelproXmlFile() : string
+    protected function sequelproXmlFile(): string
     {
         return DrupalVM::loadTemplateFile('sequelpro.xml');
     }
