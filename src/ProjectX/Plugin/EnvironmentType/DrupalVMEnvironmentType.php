@@ -393,9 +393,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                 )))
             ->end();
 
-        $installedExtraDefault = isset($config['installed_extras'])
-            ? implode(', ', $config['installed_extras'])
-            : static::DEFAULT_INSTALLABLE_PACKAGES;
+        $installedExtraDefault = static::DEFAULT_INSTALLABLE_PACKAGES;
 
         $configTreeBuilder
             ->createNode('vagrant_hostname')
@@ -451,7 +449,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                 ))->setMultiselect(true))
             ->end();
 
-        $drupalCorePathDefault = $config['drupal_core_path']
+        $drupalCorePathDefault = isset($config['drupal_core_path'])
             ? substr($config['drupal_core_path'], strrpos($config['drupal_core_path'], '/') + 1)
             : static::DEFAULT_DRUPAL_ROOT;
 
