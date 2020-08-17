@@ -24,8 +24,6 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
 {
     use vagrantTasks;
 
-    const DEFAULT_PHP_VERSION = '7.2';
-
     const DEFAULT_DRUPAL_ROOT = 'web';
 
     const DRUPALVM_PORT = 3306;
@@ -378,6 +376,9 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     {
         $config = DrupalVM::getDrupalVMConfigs();
 
+        $phpVersions = PxApp::activePhpVersions();
+        $phpDefaultVersion = $phpVersions[1];
+
         $configTreeBuilder = (new ConfigTreeBuilder())
             ->setQuestionInput($this->input)
             ->setQuestionOutput($this->output);
@@ -386,9 +387,9 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
             ->createNode('php_version')
             ->setValue(
                 (new ChoiceQuestion($this->formatQuestionDefault(
-                    'Select PHP Version', $config['php_version'] ?? static::DEFAULT_PHP_VERSION),
-                    ['7.2', '7.3', '7.4'],
-                    $config['php_version'] ?? static::DEFAULT_PHP_VERSION
+                    'Select PHP Version', $config['php_version'] ?? $phpDefaultVersion),
+                    $phpVersions,
+                    $config['php_version'] ?? $phpDefaultVersion
                 )))
             ->end();
 
