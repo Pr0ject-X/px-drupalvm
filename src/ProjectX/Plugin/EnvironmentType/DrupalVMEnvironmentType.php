@@ -32,6 +32,10 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
 
     const DRUPALVM_CONFIG_FILENAME = 'config.yml';
 
+    const DRUPALVM_LOCAL_VAGRANTFILE = 'vagrantfile.local';
+
+    const DEFAULT_VAGRANT_PLUGINS = ['vagrant-bindfs', 'vagrant-vbguest', 'vagrant-hostsupdater'];
+
     const DEFAULT_INSTALLABLE_PACKAGES = 'drush, xdebug, adminer, mailhog, pimpmylog';
 
     /**
@@ -118,7 +122,8 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
             ->printBanner()
             ->installDrupalVM()
             ->writeDrupalVMConfig()
-            ->writeDrupalVMVagrantFile();
+            ->writeDrupalVMVagrantFile()
+            ->writeDrupalVMVagrantFileLocal();
 
         if ($this->confirm('Provision the environment now?', true)) {
             /** @var \Symfony\Component\Console\Application $application */
@@ -304,27 +309,14 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     protected function writeDrupalVMConfig(): DrupalVMEnvironmentType
     {
         if ($drupalVmConfig = $this->drupalVMConfiguration()->build()) {
-            $writeConfig = true;
             $configPath = PxApp::projectRootPath() . '/' . static::DRUPALVM_CONFIG_FILENAME;
 
-            if (file_exists($configPath)) {
-                $writeConfig = $this->confirm(
-                    'The DrupalVM configurations already exist, continue?',
-                    true
-                );
-            }
-
-            if (true === $writeConfig) {
-                $response = $this->taskWriteToFile($configPath)
-                    ->text($this->arrayToYaml($drupalVmConfig))
-                    ->run();
-
-                if ($response->getExitCode() === 0) {
-                    $this->success(
-                        'The DrupalVM configurations were successfully written.'
-                    );
-                }
-            }
+            $this->confirmWriteFile(
+                $configPath,
+                $this->arrayToYaml($drupalVmConfig),
+                'The DrupalVM configurations already exist, continue?',
+                'The DrupalVM configurations were successfully written.'
+            );
         } else {
             $this->error(
                 'Unable to write the DrupalVM configurations.'
@@ -332,6 +324,30 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
         }
 
         return $this;
+    }
+
+    /**
+     * Write DrupalVM vagrant file local configurations.
+     */
+    protected function writeDrupalVMVagrantFileLocal(): void
+    {
+        $configContents = [];
+        $drupalVmConfig = DrupalVM::getDrupalVMConfigs();
+
+        if ($this->hasVagrantPlugin('vagrant-bindfs', $drupalVmConfig['vagrant_plugins'])) {
+            $configContents[] = DrupalVM::loadTemplateFile('vagrantfile.bindfs.txt');
+        }
+
+        if (!empty($configContents)) {
+            $vagrantFileLocalPath =  PxApp::projectRootPath() . '/' . static::DRUPALVM_LOCAL_VAGRANTFILE;
+
+            $this->confirmWriteFile(
+                $vagrantFileLocalPath,
+                implode("\r\n", $configContents),
+                'The DrupalVM vagrant.local file already exist, continue?',
+                'The DrupalVM vagrant.local file was successfully written.'
+            );
+        }
     }
 
     /**
@@ -363,6 +379,21 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
             'varnish',
             'xdebug',
             'xhprof',
+        ];
+    }
+
+    /**
+     * Define the DrupalVM vagrant plugin options.
+     *
+     * @return string[]
+     *   An array of supported vagrant plugins.
+     */
+    protected function drupalVMVagrantPluginOptions(): array
+    {
+        return [
+            'vagrant-bindfs',
+            'vagrant-vbguest',
+            'vagrant-hostsupdater'
         ];
     }
 
@@ -418,12 +449,12 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                             }
                             return $value;
                         })
-                    ->setNormalizer(function ($value) {
-                        if (isset($value) && strpos($value, '.') === false) {
-                            $value .= '.test';
-                        }
-                        return $value;
-                    })
+                        ->setNormalizer(function ($value) {
+                            if (isset($value) && strpos($value, '.') === false) {
+                                $value .= '.test';
+                            }
+                            return $value;
+                        })
                 )
             ->end()
             ->createNode('vagrant_machine_name')
@@ -450,8 +481,39 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                     ->setKeyValue('local_path', './')
                     ->setKeyValue('destination', static::DRUPALVM_ROOT)
                 ->end()
-            ->end()
-            ->createNode('installed_extras')
+            ->end();
+
+        $vagrantPlugins = $this->mergeVagrantPlugins(
+            $config['vagrant_plugins'],
+            static::DEFAULT_VAGRANT_PLUGINS
+        );
+
+        $configTreeBuilder
+            ->createNode('vagrant_plugins')
+            ->setValue(function() use ($vagrantPlugins) {
+                $plugins = [];
+
+                $pluginList = implode(', ', $vagrantPlugins);
+                $pluginOptions = $this->drupalVMVagrantPluginOptions();
+
+                $question = (new ChoiceQuestion(
+                    $this->formatQuestionDefault(
+                        'Select the vagrant plugins to install',
+                        $pluginList
+                    ),
+                    $pluginOptions,
+                    $pluginList
+                ))->setMultiselect(true);
+
+                foreach ($this->doAsk($question) as $name) {
+                    $plugins[] = ['name' => $name];
+                }
+
+                return $plugins;
+            })
+        ->end();
+
+        $configTreeBuilder->createNode('installed_extras')
             ->setValue(
                 (new ChoiceQuestion(
                     $this->formatQuestionDefault('Select installed extras', $installedExtraDefault),
@@ -503,6 +565,99 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
             ->end();
 
         return $configTreeBuilder;
+    }
+
+    /**
+     * Merge the vagrant plugins.
+     *
+     * @param array $defaultPlugins
+     *   An array of the default plugins.
+     * @param array $installPlugins
+     *   An array of the install plugins.
+     *
+     * @return array
+     *   An array of the merged plugins.
+     */
+    protected function mergeVagrantPlugins(
+        array $defaultPlugins,
+        array $installPlugins
+    ): array {
+        return array_unique(array_merge(
+            $this->flattenVagrantPlugins($defaultPlugins),
+            $installPlugins
+        ));
+    }
+
+    /**
+     * Determine if the vagrant plugin exist.
+     *
+     * @param string $plugin
+     *   The plugin name.
+     * @param array $activePlugins
+     *   An array of active plugins.
+     *
+     * @return bool
+     *   Return true if the plugin exist; otherwise false.
+     */
+    protected function hasVagrantPlugin(string $plugin, array $activePlugins): bool
+    {
+        return in_array($plugin, $this->flattenVagrantPlugins($activePlugins));
+    }
+
+    /**
+     * Flatten the vagrant plugins.
+     *
+     * @param array $plugins
+     *   An array of vagrant plugins.
+     *
+     * @return array
+     *   An array of flatten plugins.
+     */
+    protected function flattenVagrantPlugins(array $plugins): array
+    {
+        $flatten = [];
+
+        foreach ($plugins as $plugin) {
+            if (!isset($plugin['name'])) {
+                continue;
+            }
+            $flatten[] = $plugin['name'];
+        }
+
+        return $flatten;
+    }
+
+    /**
+     * Confirm before writing contents to path.
+     *
+     * @param string $path
+     *   The file path.
+     * @param string $contents
+     *   The file contents.
+     * @param string $confirmMessage
+     *   The file overwrite confirm message.
+     * @param string $successMessage
+     *   The file success message to display.
+     */
+    protected function confirmWriteFile(
+        string $path,
+        string $contents,
+        string $confirmMessage,
+        string $successMessage
+    ): void {
+        $write = file_exists($path)
+            ? $this->confirm($confirmMessage, true)
+            : true;
+
+        if (true === $write) {
+            $response = $this->taskWriteToFile($path)
+                ->text($contents)
+                ->run();
+
+            if ($response->getExitCode() === 0) {
+                $this->success($successMessage);
+            }
+        }
     }
 
     /**
