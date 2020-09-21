@@ -85,6 +85,39 @@ class DrupalVM
     }
 
     /**
+     * The DrupalVM web server hosts.
+     *
+     * @return array
+     *   An array of web server hosts.
+     */
+    public static function webServerHosts(): array
+    {
+        return [
+            [
+                'name' => '{{ drupal_domain }}',
+                'root' => '{{ drupal_core_path }}',
+                'ssl' => true,
+            ],
+            [
+                'name' => 'adminer.{{ vagrant_hostname }}',
+                'root' => '{{ adminer_install_dir }}',
+            ],
+            [
+                'name' => 'xhprof.{{ vagrant_hostname }}',
+                'root' => '{{ php_xhprof_html_dir }}',
+            ],
+            [
+                'name' => 'pimpmylog.{{ vagrant_hostname }}',
+                'root' => '{{ pimpmylog_install_dir }}',
+            ],
+            [
+                'name' => '{{ vagrant_ip }}',
+                'root' => 'dashboard.{{ vagrant_hostname }}'
+            ]
+        ];
+    }
+
+    /**
      * Get the remote vagrant SSH path.
      *
      * @param string $path

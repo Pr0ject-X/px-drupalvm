@@ -36,6 +36,10 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
 
     const DEFAULT_WEBSERVER = 'apache';
 
+    const DEFAULT_SSL_CERT = '/etc/ssl/certs/ssl-cert-snakeoil.pem';
+
+    const DEFAULT_SSL_CERT_KEY = '/etc/ssl/private/ssl-cert-snakeoil.key';
+
     const DEFAULT_VAGRANT_PLUGINS = ['vagrant-bindfs', 'vagrant-vbguest', 'vagrant-hostsupdater'];
 
     const DEFAULT_INSTALLABLE_PACKAGES = 'drush, xdebug, adminer, mailhog, pimpmylog';
@@ -537,6 +541,50 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                 ))->setMultiselect(true)
             )
             ->end();
+
+        $sslCert = static::DEFAULT_SSL_CERT;
+        $sslCertKey = static::DEFAULT_SSL_CERT_KEY;
+
+        $configTreeBuilder->createNode('apache_vhosts_ssl')
+            ->setArray()
+                ->setKeyValue('servername', '{{ drupal_domain }}')
+                ->setKeyValue('documentroot', '{{ drupal_core_path }}')
+                ->setKeyValue('certificate_file', $sslCert)
+                ->setKeyValue('certificate_key_file', $sslCertKey)
+                ->setKeyValue('extra_parameters', '{{ apache_vhost_php_fpm_parameters }}')
+            ->end()
+            ->setCondition(static function ($build) {
+                return isset($build['drupalvm_webserver']) && $build['drupalvm_webserver'] === 'apache';
+            })
+            ->end();
+
+        $nginxHosts = $configTreeBuilder->createNode('nginx_hosts');
+
+        foreach (DrupalVM::webServerHosts() as $webServerHost) {
+            $array = $nginxHosts->setArray();
+
+            $array->setKeyValue('server_name', $webServerHost['name']);
+            $array->setKeyValue('root', $webServerHost['root']);
+            $array->setKeyValue('is_php', true);
+
+            if (isset($webServerHost['ssl']) && $webServerHost['ssl']) {
+                $array->setKeyValue(
+                    'extra_parameters',
+                    implode(' ', [
+                        'listen 443 ssl;',
+                        "ssl_certificate {$sslCert};",
+                        "ssl_certificate_key {$sslCertKey};",
+                        'ssl_protocols TLSv1.1 TLSv1.2;',
+                        'ssl_ciphers HIGH:!aNULL:!MD5;'
+                    ])
+                );
+            }
+            $array->end();
+        }
+
+        $nginxHosts->setCondition(static function ($build) {
+            return isset($build['drupalvm_webserver']) && $build['drupalvm_webserver'] === 'nginx';
+        })->end();
 
         $drupalCorePathDefault = isset($config['drupal_core_path'])
             ? substr($config['drupal_core_path'], strrpos($config['drupal_core_path'], '/') + 1)
