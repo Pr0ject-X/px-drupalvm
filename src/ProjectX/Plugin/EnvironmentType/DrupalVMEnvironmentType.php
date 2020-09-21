@@ -34,6 +34,8 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
 
     const DRUPALVM_LOCAL_VAGRANTFILE = 'vagrantfile.local';
 
+    const DEFAULT_WEBSERVER = 'apache';
+
     const DEFAULT_VAGRANT_PLUGINS = ['vagrant-bindfs', 'vagrant-vbguest', 'vagrant-hostsupdater'];
 
     const DEFAULT_INSTALLABLE_PACKAGES = 'drush, xdebug, adminer, mailhog, pimpmylog';
@@ -425,6 +427,19 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                     ),
                     $phpVersions,
                     $config['php_version'] ?? $phpDefaultVersion
+                ))
+            )
+            ->end();
+
+        $webServerDefault = $config['drupalvm_webserver']
+            ?? static::DEFAULT_WEBSERVER;
+
+        $configTreeBuilder->createNode('drupalvm_webserver')
+            ->setValue(
+                (new ChoiceQuestion(
+                    $this->formatQuestionDefault('Select the Web Server', $webServerDefault),
+                    ['apache', 'nginx'],
+                    $webServerDefault
                 ))
             )
             ->end();
