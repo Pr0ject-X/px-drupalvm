@@ -24,25 +24,25 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
 {
     use vagrantTasks;
 
-    const DEFAULT_DRUPAL_ROOT = 'web';
+    protected const DEFAULT_DRUPAL_ROOT = 'web';
 
-    const DRUPALVM_PORT = 3306;
+    protected const DRUPALVM_PORT = 3306;
 
-    const DRUPALVM_ROOT = '/var/www/drupal';
+    protected const DRUPALVM_ROOT = '/var/www/drupal';
 
-    const DRUPALVM_CONFIG_FILENAME = 'config.yml';
+    protected const DRUPALVM_CONFIG_FILENAME = 'config.yml';
 
-    const DRUPALVM_LOCAL_VAGRANTFILE = 'vagrantfile.local';
+    protected const DRUPALVM_LOCAL_VAGRANTFILE = 'vagrantfile.local';
 
-    const DEFAULT_WEBSERVER = 'apache';
+    protected const DEFAULT_WEBSERVER = 'apache';
 
-    const DEFAULT_SSL_CERT = '/etc/ssl/certs/ssl-cert-snakeoil.pem';
+    protected const DEFAULT_SSL_CERT = '/etc/ssl/certs/ssl-cert-snakeoil.pem';
 
-    const DEFAULT_SSL_CERT_KEY = '/etc/ssl/private/ssl-cert-snakeoil.key';
+    protected const DEFAULT_SSL_CERT_KEY = '/etc/ssl/private/ssl-cert-snakeoil.key';
 
-    const DEFAULT_VAGRANT_PLUGINS = ['vagrant-bindfs', 'vagrant-vbguest', 'vagrant-hostsupdater'];
+    protected const DEFAULT_VAGRANT_PLUGINS = ['vagrant-bindfs', 'vagrant-vbguest', 'vagrant-hostsupdater'];
 
-    const DEFAULT_INSTALLABLE_PACKAGES = 'drush, xdebug, adminer, mailhog, pimpmylog';
+    protected const DEFAULT_INSTALLABLE_PACKAGES = 'drush, xdebug, adminer, mailhog, pimpmylog';
 
     /**
      * {@inheritDoc}
@@ -122,7 +122,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
     /**
      * {@inheritDoc}
      */
-    public function init(array $opts = [])
+    public function init(array $opts = []): void
     {
         $this
             ->printBanner()
@@ -309,24 +309,22 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      * Write DrupalVM configuration to the filesystem.
      *
      * @return \Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\DrupalVMEnvironmentType
-     *
-     * @throws \Exception
      */
     protected function writeDrupalVMConfig(): DrupalVMEnvironmentType
     {
-        if ($drupalVmConfig = $this->drupalVMConfiguration()->build()) {
-            $configPath = PxApp::projectRootPath() . '/' . static::DRUPALVM_CONFIG_FILENAME;
+        try {
+            if ($drupalVmConfig = $this->drupalVMConfiguration()->build()) {
+                $configPath = PxApp::projectRootPath() . '/' . static::DRUPALVM_CONFIG_FILENAME;
 
-            $this->confirmWriteFile(
-                $configPath,
-                $this->arrayToYaml($drupalVmConfig),
-                'The DrupalVM configurations already exist, continue?',
-                'The DrupalVM configurations were successfully written.'
-            );
-        } else {
-            $this->error(
-                'Unable to write the DrupalVM configurations.'
-            );
+                $this->confirmWriteFile(
+                    $configPath,
+                    $this->arrayToYaml($drupalVmConfig),
+                    'The DrupalVM configurations already exist, continue?',
+                    'The DrupalVM configurations were successfully written.'
+                );
+            }
+        } catch (\Exception $exception) {
+            $this->error($exception->getMessage());
         }
 
         return $this;
@@ -347,12 +345,16 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
         if (!empty($configContents)) {
             $vagrantFileLocalPath =  PxApp::projectRootPath() . '/' . static::DRUPALVM_LOCAL_VAGRANTFILE;
 
-            $this->confirmWriteFile(
-                $vagrantFileLocalPath,
-                implode("\r\n", $configContents),
-                'The DrupalVM vagrant.local file already exist, continue?',
-                'The DrupalVM vagrant.local file was successfully written.'
-            );
+            try {
+                $this->confirmWriteFile(
+                    $vagrantFileLocalPath,
+                    implode("\r\n", $configContents),
+                    'The DrupalVM vagrant.local file already exist, continue?',
+                    'The DrupalVM vagrant.local file was successfully written.'
+                );
+            } catch (\Exception $exception) {
+                $this->error($exception->getMessage());
+            }
         }
     }
 
@@ -509,7 +511,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
 
         $configTreeBuilder
             ->createNode('vagrant_plugins')
-            ->setValue(function() use ($vagrantPlugins) {
+            ->setValue(function () use ($vagrantPlugins) {
                 $plugins = [];
 
                 $pluginList = implode(', ', $vagrantPlugins);
@@ -618,7 +620,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                 ->setCondition(function (array $build) {
                     if (
                         isset($build['installed_extras'])
-                        && in_array('xdebug', $build['installed_extras'])
+                        && in_array('xdebug', $build['installed_extras'], true)
                     ) {
                         return true;
                     }
@@ -664,7 +666,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      */
     protected function hasVagrantPlugin(string $plugin, array $activePlugins): bool
     {
-        return in_array($plugin, $this->flattenVagrantPlugins($activePlugins));
+        return in_array($plugin, $this->flattenVagrantPlugins($activePlugins), true);
     }
 
     /**
@@ -717,9 +719,14 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                 ->text($contents)
                 ->run();
 
-            if ($response->getExitCode() === 0) {
-                $this->success($successMessage);
+            if ($response->getExitCode() !== 0) {
+                throw new \RuntimeException(sprintf(
+                    'Failed to write contents to %s.',
+                    $path
+                ));
             }
+
+            $this->success($successMessage);
         }
     }
 

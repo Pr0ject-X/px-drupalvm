@@ -67,7 +67,6 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
                 ));
             }
             $this->callDatabaseApplicationExecute($appName);
-
         } catch (\Exception $exception) {
             $this->error($exception->getMessage());
         }
@@ -140,7 +139,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
                 'os' => 'Darwin',
                 'label' => 'Sequel Ace',
                 'location' => '/Applications/Sequel Ace.app',
-                'execute' => function(string $appLocation) {
+                'execute' => function (string $appLocation) {
                     $this->openSequelDatabaseFile($appLocation);
                 }
             ],
@@ -148,7 +147,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
                 'os' => 'Darwin',
                 'label' => 'Sequel Pro',
                 'location' => '/Applications/Sequel Pro.app',
-                'execute' => function(string $appLocation) {
+                'execute' => function (string $appLocation) {
                     $this->openSequelDatabaseFile($appLocation);
                 }
             ],
@@ -177,7 +176,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
      */
     protected function getDatabaseApplications(): array
     {
-        return array_filter($this->databaseApplicationInfo(), static function($appInfo) {
+        return array_filter($this->databaseApplicationInfo(), static function ($appInfo) {
             if (
                 $appInfo['os'] === PHP_OS
                 && file_exists($appInfo['location'])
@@ -235,7 +234,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
         $projectTempDir = PxApp::projectTempDir();
 
         $dbConfigs = DrupalVM::getDatabaseConfigs();
-        $vagrantConfigs =DrupalVM::getVagrantConfigs();
+        $vagrantConfigs = DrupalVM::getVagrantConfigs();
         $sequelTempPath = "{$projectTempDir}/sequel.spf";
 
         $writeResponse = $this->taskWriteToFile($sequelTempPath)
