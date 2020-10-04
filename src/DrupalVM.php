@@ -118,6 +118,17 @@ class DrupalVM
     }
 
     /**
+     * Get the remote vagrant SSH private key path.
+     *
+     * @return string
+     *   The remote vagrant SSH private key path.
+     */
+    public static function getVagrantSshPrivateKey(): string
+    {
+        return "{$_SERVER['HOME']}/.vagrant.d/insecure_private_key";
+    }
+
+    /**
      * Get the remote vagrant SSH path.
      *
      * @param string $path

@@ -30,9 +30,9 @@
                 <key>ssh_port</key>
                 <string>{ssh_port}</string>
                 <key>ssh_keyLocation</key>
-                <string></string>
+                <string>{ssh_key}</string>
                 <key>ssh_keyLocationEnabled</key>
-                <integer>0</integer>
+                <integer>1</integer>
                 <key>rdbms_type</key>
                 <string>mysql</string>
             </dict>

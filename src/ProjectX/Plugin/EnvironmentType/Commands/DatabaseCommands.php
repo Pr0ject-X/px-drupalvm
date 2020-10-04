@@ -243,6 +243,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
             ->place('ssh_port', 22)
             ->place('ssh_user', $vagrantConfigs['vagrant_user'])
             ->place('ssh_host', $vagrantConfigs['vagrant_hostname'])
+            ->place('ssh_key', DrupalVM::getVagrantSshPrivateKey())
             ->place('host', $dbConfigs['drupal_db_host'])
             ->place('database', $dbConfigs['drupal_db_name'])
             ->place('username', $dbConfigs['drupal_db_user'])
@@ -279,7 +280,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
 
         if ($continue) {
             $scpCommand = (new Scp())
-                ->identityFile("{$_SERVER['HOME']}/.vagrant.d/insecure_private_key")
+                ->identityFile(DrupalVM::getVagrantSshPrivateKey())
                 ->source(DrupalVM::getVagrantSshPath($source_path))
                 ->target($target_path)
                 ->build();
@@ -313,7 +314,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
     {
         if (file_exists($source_path)) {
             $scpCommand = (new Scp())
-                ->identityFile("{$_SERVER['HOME']}/.vagrant.d/insecure_private_key")
+                ->identityFile(DrupalVM::getVagrantSshPrivateKey())
                 ->source($source_path)
                 ->target(DrupalVM::getVagrantSshPath($target_path))
                 ->build();
