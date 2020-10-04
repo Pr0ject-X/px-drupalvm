@@ -21,48 +21,55 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
 {
     use vagrantTasks;
 
-    const TEMP_DIRECTORY = '/tmp';
-
-    const SEQUEL_PRO_APP = '/Applications/Sequel Pro.app';
+    /**
+     * Define the temporary directory.
+     */
+    protected const TEMP_DIRECTORY = '/tmp';
 
     /**
-     * Connect to the DrupalVM database using Sequel Pro.
+     * Define default database application.
      */
-    public function dbLaunch()
+    protected const DEFAULT_DB_APPLICATION = 'sequel_ace';
+
+    /**
+     * Connect to the DrupalVM database using an external application.
+     *
+     * @param string|null $appName
+     *   The DB application name e.g (sequel_pro, sequel_ace).
+     */
+    public function dbLaunch(string $appName = null): void
     {
-        if (strtolower(php_uname('s')) !== 'darwin') {
-            throw new \RuntimeException(
-                'The Sequel Pro application is only available on Mac.'
-            );
-        }
+        try {
+            $appOptions = $this->getDatabaseApplicationOptions();
 
-        if (file_exists(static::SEQUEL_PRO_APP)) {
-            $projectTempDir = PxApp::projectTempDir();
-
-            $dbConfigs = DrupalVM::getDatabaseConfigs();
-            $vagrantConfigs = DrupalVM::getVagrantConfigs();
-            $sequelProTempPath = "{$projectTempDir}/sequelpro.spf";
-
-            $writeResponse = $this->taskWriteToFile($sequelProTempPath)
-                ->text($this->sequelproXmlFile())
-                ->place('label', 'DrupalVM')
-                ->place('ssh_port', 22)
-                ->place('ssh_user', $vagrantConfigs['vagrant_user'])
-                ->place('ssh_host', $vagrantConfigs['vagrant_hostname'])
-                ->place('host', $dbConfigs['drupal_db_host'])
-                ->place('database', $dbConfigs['drupal_db_name'])
-                ->place('username', $dbConfigs['drupal_db_user'])
-                ->place('password', $dbConfigs['drupal_db_password'])
-                ->place('port', 3306)
-                ->run();
-
-            if ($writeResponse->getExitCode() === 0) {
-                $this->taskExec("open {$sequelProTempPath}")->run();
+            if (empty($appOptions)) {
+                throw new \RuntimeException(
+                    'There are no supported database applications found!'
+                );
             }
-        } else {
-            throw new \RuntimeException(
-                sprintf('Unable to locate the Sequel Pro application at %s.', static::SEQUEL_PRO_APP)
-            );
+
+            if (!isset($appName)) {
+                $appName = count($appOptions) === 1
+                    ? array_key_first($appOptions)
+                    : $this->askChoice(
+                        'Select the database application to launch',
+                        $appOptions,
+                        array_key_exists(static::DEFAULT_DB_APPLICATION, $appOptions)
+                            ? static::DEFAULT_DB_APPLICATION
+                            : array_key_first($appOptions)
+                    );
+            }
+
+            if (!isset($this->databaseApplicationInfo()[$appName])) {
+                throw new \InvalidArgumentException(sprintf(
+                    'The database application %s is invalid!',
+                    $appName
+                ));
+            }
+            $this->callDatabaseApplicationExecute($appName);
+
+        } catch (\Exception $exception) {
+            $this->error($exception->getMessage());
         }
     }
 
@@ -121,6 +128,135 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
     }
 
     /**
+     * Define the database application information.
+     *
+     * @return array[]
+     *   An array of the database application.
+     */
+    protected function databaseApplicationInfo(): array
+    {
+        return [
+            'sequel_ace' => [
+                'os' => 'Darwin',
+                'label' => 'Sequel Ace',
+                'location' => '/Applications/Sequel Ace.app',
+                'execute' => function(string $appLocation) {
+                    $this->openSequelDatabaseFile($appLocation);
+                }
+            ],
+            'sequel_pro' => [
+                'os' => 'Darwin',
+                'label' => 'Sequel Pro',
+                'location' => '/Applications/Sequel Pro.app',
+                'execute' => function(string $appLocation) {
+                    $this->openSequelDatabaseFile($appLocation);
+                }
+            ],
+        ];
+    }
+
+    /**
+     * Get the single database application definition.
+     *
+     * @param string $name
+     *   The database application machine name.
+     *
+     * @return array
+     *   An array of the database application definition.
+     */
+    protected function getDatabaseApplicationInfo(string $name): array
+    {
+        return $this->databaseApplicationInfo()[$name] ?? [];
+    }
+
+    /**
+     * Get the applicable database applications.
+     *
+     * @return array
+     *   An array of valid database applications.
+     */
+    protected function getDatabaseApplications(): array
+    {
+        return array_filter($this->databaseApplicationInfo(), static function($appInfo) {
+            if (
+                $appInfo['os'] === PHP_OS
+                && file_exists($appInfo['location'])
+            ) {
+                return true;
+            }
+
+            return false;
+        });
+    }
+
+    /**
+     * Get the database application options.
+     *
+     * @return array
+     *   An array of the database application options.
+     */
+    protected function getDatabaseApplicationOptions(): array
+    {
+        $options = [];
+
+        foreach ($this->getDatabaseApplications() as $key => $info) {
+            if (!isset($info['label'])) {
+                continue;
+            }
+            $options[$key] = $info['label'];
+        }
+
+        return $options;
+    }
+
+    /**
+     * Call the database application execute function.
+     *
+     * @param string $name
+     *   The database application machine name.
+     */
+    protected function callDatabaseApplicationExecute(string $name): void
+    {
+        $dbInfo = $this->getDatabaseApplicationInfo($name);
+
+        if (is_callable($dbInfo['execute'])) {
+            call_user_func($dbInfo['execute'], $dbInfo['location']);
+        }
+    }
+
+    /**
+     * Open the sequel (pro/ace) application database file.
+     *
+     * @param string $appPath
+     *   The the database application location path.
+     */
+    protected function openSequelDatabaseFile(string $appPath): void
+    {
+        $projectTempDir = PxApp::projectTempDir();
+
+        $dbConfigs = DrupalVM::getDatabaseConfigs();
+        $vagrantConfigs =DrupalVM::getVagrantConfigs();
+        $sequelTempPath = "{$projectTempDir}/sequel.spf";
+
+        $writeResponse = $this->taskWriteToFile($sequelTempPath)
+            ->text($this->sequelXmlFile())
+            ->place('label', 'DrupalVM')
+            ->place('ssh_port', 22)
+            ->place('ssh_user', $vagrantConfigs['vagrant_user'])
+            ->place('ssh_host', $vagrantConfigs['vagrant_hostname'])
+            ->place('host', $dbConfigs['drupal_db_host'])
+            ->place('database', $dbConfigs['drupal_db_name'])
+            ->place('username', $dbConfigs['drupal_db_user'])
+            ->place('password', $dbConfigs['drupal_db_password'])
+            ->place('port', 3306)
+            ->run();
+
+        if ($writeResponse->getExitCode() === 0) {
+            $this->taskExec("open -a '{$appPath}' {$sequelTempPath}")->run();
+        }
+    }
+
+    /**
      * Scp the file to the vagrant host machine.
      *
      * @param string $target_path
@@ -148,7 +284,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
                 ->source(DrupalVM::getVagrantSshPath($source_path))
                 ->target($target_path)
                 ->build();
-            
+
             $response = $this->taskExec($scpCommand)->run();
 
             if ($response->getExitCode() === 0) {
@@ -339,13 +475,13 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
     }
 
     /**
-     * Get the squeal pro configuration template contents.
+     * Get the squeal configuration template contents.
      *
      * @return string
-     *   The sequel pro configuration template contents.
+     *   The sequel configuration template contents.
      */
-    protected function sequelproXmlFile(): string
+    protected function sequelXmlFile(): string
     {
-        return DrupalVM::loadTemplateFile('sequelpro.xml');
+        return DrupalVM::loadTemplateFile('sequel.xml');
     }
 }
