@@ -40,7 +40,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
 
     protected const DEFAULT_SSL_CERT_KEY = '/etc/ssl/private/ssl-cert-snakeoil.key';
 
-    protected const DEFAULT_VAGRANT_PLUGINS = ['vagrant-bindfs', 'vagrant-vbguest', 'vagrant-hostsupdater'];
+    protected const DEFAULT_VAGRANT_PLUGINS = ['vagrant-vbguest', 'vagrant-hostsupdater'];
 
     protected const DEFAULT_INSTALLABLE_PACKAGES = 'drush, xdebug, adminer, mailhog, pimpmylog';
 
@@ -504,10 +504,9 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
                 ->end()
             ->end();
 
-        $vagrantPlugins = $this->mergeVagrantPlugins(
-            $config['vagrant_plugins'],
-            static::DEFAULT_VAGRANT_PLUGINS
-        );
+        $vagrantPlugins = isset($config['vagrant_plugins']) && !empty($config['vagrant_plugins'])
+            ? $this->flattenVagrantPlugins($config['vagrant_plugins'])
+            : static::DEFAULT_VAGRANT_PLUGINS;
 
         $configTreeBuilder
             ->createNode('vagrant_plugins')
@@ -630,27 +629,6 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
             ->end();
 
         return $configTreeBuilder;
-    }
-
-    /**
-     * Merge the vagrant plugins.
-     *
-     * @param array $defaultPlugins
-     *   An array of the default plugins.
-     * @param array $installPlugins
-     *   An array of the install plugins.
-     *
-     * @return array
-     *   An array of the merged plugins.
-     */
-    protected function mergeVagrantPlugins(
-        array $defaultPlugins,
-        array $installPlugins
-    ): array {
-        return array_unique(array_merge(
-            $this->flattenVagrantPlugins($defaultPlugins),
-            $installPlugins
-        ));
     }
 
     /**
