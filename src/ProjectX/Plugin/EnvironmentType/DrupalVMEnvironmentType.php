@@ -249,6 +249,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
         if (!PxApp::composerHasPackage('geerlingguy/drupal-vm')) {
             $this->taskComposerRequire()
                 ->dependency('geerlingguy/drupal-vm', null)
+                ->dev()
                 ->run();
 
             $this->taskComposerInstall()->run();
