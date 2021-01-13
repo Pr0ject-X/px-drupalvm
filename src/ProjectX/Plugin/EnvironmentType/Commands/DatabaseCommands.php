@@ -179,7 +179,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
             'sequel_ace' => [
                 'os' => 'Darwin',
                 'label' => 'Sequel Ace',
-                'location' => '/Applications/Sequel Ace.app',
+                'locations' => '/Applications/Sequel Ace.app',
                 'execute' => function (string $appLocation) {
                     $this->openSequelDatabaseFile($appLocation);
                 }
@@ -187,9 +187,20 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
             'sequel_pro' => [
                 'os' => 'Darwin',
                 'label' => 'Sequel Pro',
-                'location' => '/Applications/Sequel Pro.app',
+                'locations' => '/Applications/Sequel Pro.app',
                 'execute' => function (string $appLocation) {
                     $this->openSequelDatabaseFile($appLocation);
+                }
+            ],
+            'table_plus' => [
+                'os' => 'Darwin',
+                'label' => 'TablePlus',
+                'locations' => [
+                    '/Applications/TablePlus.app',
+                    '/Applications/Setapp/TablePlus.app',
+                ],
+                'execute' => function (string $appLocation) {
+                    $this->openTablePlusDatabaseConnection($appLocation);
                 }
             ],
         ];
@@ -206,20 +217,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
      */
     protected function getDatabaseApplicationInfo(string $name): array
     {
-        return $this->databaseApplicationInfo()[$name] ?? [];
-    }
-
-    /**
-     * Get the applicable database applications.
-     *
-     * @return array
-     *   An array of valid database applications.
-     */
-    protected function getDatabaseApplications(): array
-    {
-        return array_filter($this->databaseApplicationInfo(), static function ($appInfo) {
-            return $appInfo['os'] === PHP_OS && file_exists($appInfo['location']);
-        });
+        return $this->findAvailableDatabaseApplications()[$name] ?? [];
     }
 
     /**
@@ -232,7 +230,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
     {
         $options = [];
 
-        foreach ($this->getDatabaseApplications() as $key => $info) {
+        foreach ($this->findAvailableDatabaseApplications() as $key => $info) {
             if (!isset($info['label'])) {
                 continue;
             }
@@ -258,6 +256,35 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
     }
 
     /**
+     * Open TablePlus local database connection.
+     *
+     * @param string $appPath
+     *   The the database application location path.
+     */
+    protected function openTablePlusDatabaseConnection(string $appPath): void
+    {
+        $database = $this->getEnvironmentPrimaryDatabase();
+
+        if ($database->isValid()) {
+            $vagrant = DrupalVM::getVagrantConfigs();
+
+            $appUrl = "mysql+ssh://{$vagrant['vagrant_user']}@{$vagrant['vagrant_hostname']}/{$database->getUsername()}:{$database->getPassword()}@{$database->getHost()}/{$database->getDatabase()}";
+
+            $appQuery = http_build_query([
+                'statusColor' => '007F3D',
+                'environment' => 'local',
+                'name' => 'Project-X Local Database',
+                'tLSMode' => 0,
+                'usePrivateKey' => 'true',
+                'safeModeLevel' => 0,
+                'advancedSafeModeLevel' => 0
+            ]);
+
+            $this->taskExec("open '{$appUrl}?{$appQuery}' -a '{$appPath}'")->run();
+        }
+    }
+
+    /**
      * Open the sequel (pro/ace) application database file.
      *
      * @param string $appPath
@@ -265,30 +292,86 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
      */
     protected function openSequelDatabaseFile(string $appPath): void
     {
-        $projectTempDir = PxApp::projectTempDir();
-
-        $vagrantConfigs = DrupalVM::getVagrantConfigs();
-        $sequelTempPath = "{$projectTempDir}/sequel.spf";
-
         $database = $this->getEnvironmentPrimaryDatabase();
 
-        $writeResponse = $this->taskWriteToFile($sequelTempPath)
-            ->text($this->sequelXmlFile())
-            ->place('label', 'Project-X Database')
-            ->place('ssh_port', 22)
-            ->place('ssh_user', $vagrantConfigs['vagrant_user'])
-            ->place('ssh_host', $vagrantConfigs['vagrant_hostname'])
-            ->place('ssh_key', DrupalVM::getVagrantSshPrivateKey())
-            ->place('host', $database->getHost())
-            ->place('database', $database->getDatabase())
-            ->place('username', $database->getUsername())
-            ->place('password', $database->getPassword())
-            ->place('port', 3306)
-            ->run();
+        if ($database->isValid()) {
+            $projectTempDir = PxApp::projectTempDir();
+            $vagrantConfigs = DrupalVM::getVagrantConfigs();
 
-        if ($writeResponse->getExitCode() === 0) {
-            $this->taskExec("open -a '{$appPath}' {$sequelTempPath}")->run();
+            $sequelTempPath = "{$projectTempDir}/sequel.spf";
+
+            $writeResponse = $this->taskWriteToFile($sequelTempPath)
+                ->text($this->sequelXmlFile())
+                ->place('label', 'Project-X Database')
+                ->place('ssh_port', 22)
+                ->place('ssh_user', $vagrantConfigs['vagrant_user'])
+                ->place('ssh_host', $vagrantConfigs['vagrant_hostname'])
+                ->place('ssh_key', DrupalVM::getVagrantSshPrivateKey())
+                ->place('host', $database->getHost())
+                ->place('database', $database->getDatabase())
+                ->place('username', $database->getUsername())
+                ->place('password', $database->getPassword())
+                ->place('port', 3306)
+                ->run();
+
+            if ($writeResponse->getExitCode() === 0) {
+                $this->taskExec("open -a '{$appPath}' {$sequelTempPath}")->run();
+            }
         }
+    }
+
+    /**
+     * Find available database applications.
+     *
+     * @return array
+     *   An array of database apps found on system.
+     */
+    protected function findAvailableDatabaseApplications(): array
+    {
+        $dbApps = [];
+
+        foreach ($this->databaseApplicationInfo() as $appKey => $appInfo) {
+            if ($appInfo['os'] === PHP_OS && isset($appInfo['locations'])) {
+                $locations = $appInfo['locations'];
+
+                if (!is_array($locations)) {
+                    $locations = [$locations];
+                }
+                $location = $this->getDatabaseApplicationLocation($locations);
+
+                if (!isset($location)) {
+                    continue;
+                }
+
+                $dbApps[$appKey] = [
+                    'label' => $appInfo['label'],
+                    'execute' => $appInfo['execute'],
+                    'location' => $location
+                ];
+            }
+        }
+
+        return $dbApps;
+    }
+
+    /**
+     * Get database application location.
+     *
+     * @param array $locations
+     *   An array of searchable locations.
+     *
+     * @return string|null
+     */
+    protected function getDatabaseApplicationLocation(array $locations): ?string
+    {
+        foreach ($locations as $location) {
+            if (!file_exists($location)) {
+                continue;
+            }
+            return $location;
+        }
+
+        return null;
     }
 
     /**
