@@ -9,6 +9,8 @@ use Pr0jectX\Px\ConfigTreeBuilder\ConfigTreeBuilder;
 use Pr0jectX\Px\ProjectX\Plugin\EnvironmentType\EnvironmentDatabase;
 use Pr0jectX\Px\ProjectX\Plugin\EnvironmentType\EnvironmentTypeBase;
 use Pr0jectX\Px\ProjectX\Plugin\EnvironmentType\EnvironmentTypeInterface;
+use Pr0jectX\Px\ProjectX\Plugin\PluginConfigurationBuilderInterface;
+use Pr0jectX\Px\ProjectX\Plugin\PluginConfigurationTrait;
 use Pr0jectX\Px\PxApp;
 use Pr0jectX\PxDrupalVM\DrupalVM;
 use Pr0jectX\PxDrupalVM\ProjectX\Plugin\EnvironmentType\Commands\DatabaseCommands;
@@ -20,9 +22,10 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Define the DrupalVM environment type.
  */
-class DrupalVMEnvironmentType extends EnvironmentTypeBase
+class DrupalVMEnvironmentType extends EnvironmentTypeBase implements PluginConfigurationBuilderInterface
 {
     use vagrantTasks;
+    use PluginConfigurationTrait;
 
     protected const DEFAULT_DRUPAL_ROOT = 'web';
 
@@ -220,7 +223,8 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
      */
     public function launch(array $opts = []): DrupalVMEnvironmentType
     {
-        $schema = $opts['schema'] ?? 'http';
+        $config = $this->getPluginConfiguration();
+        $schema = $opts['schema'] ?? $config['schema'] ?? 'http';
 
         if ($hostname = DrupalVM::getDrupalVMConfigs()['vagrant_hostname']) {
             $this->taskOpenBrowser("{$schema}://{$hostname}")->run();
@@ -237,6 +241,29 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase
         $this->taskVagrantSsh()->command($cmd)->run();
 
         return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function pluginConfiguration(): ConfigTreeBuilder
+    {
+        $configBuilder = new ConfigTreeBuilder();
+
+        $configBuilder
+            ->setQuestionInput($this->input())
+            ->setQuestionOutput($this->output())
+            ->createNode('schema')
+                ->setValue(
+                    $this->choice(
+                        'Select the browser launch schema',
+                        ['http', 'https'],
+                        'https'
+                    )
+                )
+            ->end();
+
+        return $configBuilder;
     }
 
     /**

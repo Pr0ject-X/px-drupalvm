@@ -34,7 +34,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
     protected const DEFAULT_DB_APPLICATION = 'sequel_ace';
 
     /**
-     * Connect to the DrupalVM database using an external application.
+     * Connect to the environment database using an external application.
      *
      * @param string|null $appName
      *   The DB application name e.g (sequel_pro, sequel_ace).
@@ -75,7 +75,7 @@ class DatabaseCommands extends PluginCommandTaskBase implements DatabaseCommandI
     }
 
     /**
-     * Import the primary database to the environment.
+     * Import the primary database into the environment.
      *
      * @param string $importFile
      *   The database import file.
