@@ -236,7 +236,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase implements PluginConfi
     /**
      * {@inheritDoc}
      */
-    public function exec(string $cmd): DrupalVMEnvironmentType
+    public function exec(string $cmd, array $opts = []): DrupalVMEnvironmentType
     {
         $this->taskVagrantSsh()->command($cmd)->run();
 
