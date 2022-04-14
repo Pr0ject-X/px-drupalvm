@@ -107,7 +107,7 @@ class DrupalVMEnvironmentType extends EnvironmentTypeBase implements PluginConfi
     /**
      * {@inheritDoc}
      */
-    public function envDatabases(): array
+    public function envDatabases(bool $internal = false): array
     {
         $dbConfigs = DrupalVM::getDatabaseConfigs();
 
